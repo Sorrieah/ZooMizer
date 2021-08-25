@@ -363,7 +363,7 @@ getAbundanceFrame_ZooMizer <- function (sim, zoo_params, species = NULL, start_t
 
 #' Plot the abundance of species through time
 #'
-#' @param sim An object of class MizerSim contianing the fish model
+#' @param sim An object of class MizerSim containing the fish model
 #' @param zoo_params An object of class MizerParams containing the zooplankton model
 #' @param species A list of fish species to include in the plot
 #' @param start_time 

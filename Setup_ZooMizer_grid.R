@@ -2,19 +2,26 @@
 ##
 ## Adapted from Jason's ZooMSS code for UNSWs Katana
 ##
-## Updated Monday 5th of July, 2021
+## Updated by Irene Richards Wed 25-Aug-2021
 
 library(mizer)
 library(tidyverse)
 library(assertthat)
 
-#job specifics
+# Set Job Specifics
+
+HPC <- FALSE # Select setup options for non-HPC runs
+if(HPC == FALSE){
+  setwd("G:\\GitHub\\ZooMizer") # Choose local working directory
+  ID <- 703 # Select a specific enviro row for local runs
+  jobname <- Sys.time() %>% format("%Y%m%d%H%M") %>% paste0("_grid") # Generate job name
+} else {
+  jobname <- '20210823_grid' #job name used on queue
+  ID <- as.integer(Sys.getenv('PBS_ARRAY_INDEX')) # Get the array run number on HPC
+}
+
 Groups <- read.csv("data/TestGroups_mizer.csv") # Load in functional group information
-
-jobname <- '20210705_grid' #job name used on queue
-
-ID <- as.integer(Sys.getenv('PBS_ARRAY_INDEX'))
-ID_char <- sprintf("%04d",ID)
+ID_char <- sprintf("%04d",ID) # Sets the ID as a 4-digit character for sorting
 
 # Choose environmental data to use
 enviro <- readRDS("data/enviro_grid20210705.RDS")[ID,]
