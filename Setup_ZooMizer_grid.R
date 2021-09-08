@@ -2,7 +2,7 @@
 ##
 ## Adapted from Jason's ZooMSS code for UNSWs Katana
 ##
-## Updated by Irene Richards Wed 25-Aug-2021
+## Updated by Irene Richards Wed 8-Sep-2021
 
 library(mizer)
 library(tidyverse)
@@ -12,7 +12,6 @@ library(assertthat)
 
 HPC <- FALSE # Select setup options for non-HPC runs
 if(HPC == FALSE){
-  setwd("G:\\GitHub\\ZooMizer") # Choose local working directory
   ID <- 703 # Select a specific enviro row for local runs
   enviro <- readRDS("data/enviro_grid20210705.RDS")[ID,]
   # Generate unique job name
