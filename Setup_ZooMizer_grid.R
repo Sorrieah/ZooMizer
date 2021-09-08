@@ -14,17 +14,23 @@ HPC <- FALSE # Select setup options for non-HPC runs
 if(HPC == FALSE){
   setwd("G:\\GitHub\\ZooMizer") # Choose local working directory
   ID <- 703 # Select a specific enviro row for local runs
-  jobname <- Sys.time() %>% format("%Y%m%d%H%M") %>% paste0("_grid") # Generate job name
+  enviro <- readRDS("data/enviro_grid20210705.RDS")[ID,]
+  # Generate unique job name
+  jobname <- Sys.time() %>% format("%Y%m%d%H%M") %>% paste0("_grid",
+                                                            "_sst-",enviro$sst,
+                                                            "_chlo100-",
+                                                            as.integer(enviro$chlo*100))
 } else {
   jobname <- '20210823_grid' #job name used on queue
   ID <- as.integer(Sys.getenv('PBS_ARRAY_INDEX')) # Get the array run number on HPC
+  enviro <- readRDS("data/enviro_grid20210705.RDS")[ID,]
 }
 
 Groups <- read.csv("data/TestGroups_mizer.csv") # Load in functional group information
 ID_char <- sprintf("%04d",ID) # Sets the ID as a 4-digit character for sorting
 
-# Choose environmental data to use
-enviro <- readRDS("data/enviro_grid20210705.RDS")[ID,]
+# Choose environmental data to use (moved into if temporarily)
+#enviro <- readRDS("data/enviro_grid20210705.RDS")[ID,]
 
 source("uncoupledmodel.R")
 source("ZooMizerResourceFunctions.R")
