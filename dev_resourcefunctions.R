@@ -15,7 +15,15 @@
 
 # Experimental Functions --------------------------------------------------
 
-phyto_inc <- function()
+phyto_decrement <- function(params, n, n_pp, n_other, rates, dt, 
+                        kappa = 10^enviro$phyto_int[i], 
+                        lambda= 1-enviro$phyto_slope[i], ... )
+{
+  npp <- 0.99*kappa*params@w_full^(-lambda) #returns the fixed spectrum at every time step
+  npp[params@w_full > params@resource_params$w_pp_cutoff] <- 0
+  return(npp)
+}
+resource_dynamics = "phyto_decrement"
 
 # ZooMizer Function -------------------------------------------------------
 
@@ -244,4 +252,85 @@ resource_semichemostat <- function(params, n, n_pp, n_other, rates, t, dt, ...)
   sel <- mur == 0
   n_pp_new[sel] <- n_pp[sel]
   n_pp_new
+}
+
+
+# Modified fZooMizer_run for differing resource dynamics ------------------
+
+fZooMizer_run <- function(groups, input, no_w = 178){
+  
+  kappa = 10^(input$phyto_int)
+  lambda = 1-input$phyto_slope
+  chlo = input$chlo
+  sst = input$sst
+  dt = input$dt
+  tmax = input$tmax
+  
+  #data
+  groups$w_min <- 10^groups$w_min #convert from log10 values
+  groups$w_inf <- 10^groups$w_inf
+  groups$w_mat <- 10^groups$w_mat
+  groups$h <- 1e50 # should be Inf, but that breaks the calculations. Massive value still works out to effectively unlimited feeding as allowed in ZooMSS
+  groups$ks <- 0 #turn off standard metabolism
+  if (is.null(groups$interaction_resource)) {
+    groups$interaction_resource <- 1
+    groups$interaction_resource[which(groups$FeedType == "Carnivore")] <- 0
+  }
+  
+  #todo - ramp up constant repro for coexistence
+  
+  mf.params <- new_newMultispeciesParams(species_params=groups,
+                                         interaction=NULL, #NULL sets all to 1, no strict herbivores
+                                         min_w = 10^(-10.7),
+                                         max_w = 10^7* (1 + 1e-06),
+                                         no_w = no_w, #number of zoo+fish size classes;
+                                         # w_full = 10^seq(from = -14.5, to = (log10(max(groups$w_inf)) + 0.1), by = 0.1),
+                                         min_w_pp = 10^(-14.5), #minimum phyto size. Note: use -14.4, not -14.5, otherwise it makes an extra size class
+                                         w_pp_cutoff = 10^(input$phyto_max)* (1 + 1e-06), #maximum phyto size
+                                         n = 0.7, #The allometric growth exponent used in ZooMSS
+                                         z0pre = 1, #external mortality (senescence)
+                                         z0exp = 0.3,
+                                         resource_dynamics = resource_dynamics,
+                                         kappa = kappa,
+                                         lambda = lambda,
+                                         RDD = constantRDD(species_params = groups), #first go at this
+                                         #pred_kernel = ... #probably easiest to just import this/pre-calculate it, once dimensions are worked out
+  )
+  
+  mf.params@species_params$w_min <- groups$w_min  #fix Mizer setting the egg weight to be one size larger for some groups.
+  #mf.params@initial_n[] <- readRDS("data/initialn.RDS")
+  
+  temp_eff <-  matrix(2.^((sst - 30)/10), nrow = length(mf.params@species_params$species), ncol = length(mf.params@w))
+  
+  mf.params@other_params$assim_eff <- setassim_eff(groups)
+  cc_phyto <- 0.1 #carbon content of phytoplankton
+  mf.params@other_params$assim_phyto <- mf.params@species_params$GrossGEscale * cc_phyto #assimilation efficiency when eating phytoplankton
+  
+  mf.params@other_params$temp_eff <-  matrix(2.^((sst - 30)/10), nrow = length(mf.params@species_params$species), ncol = length(mf.params@w))
+  
+  mf.params <- setZooMizerConstants(params = mf.params, Groups = groups, sst = input$sst)
+  #mf.params@initial_n[] <- readRDS("data/initialn.RDS")
+  
+  #mf.params <- setParams(mf.params)
+  
+  # mf.params <- setRateFunction(mf.params, "PredRate", "new_PredRate")
+  mf.params <- setRateFunction(mf.params, "EReproAndGrowth", "new_EReproAndGrowth")
+  mf.params <- setRateFunction(mf.params, "FeedingLevel", "newFeedingLevel")
+  mf.params <- setRateFunction(mf.params, "Encounter", "new_Encounter")
+  mf.params <- setRateFunction(mf.params, "PredRate", "new_PredRate")
+  mf.params <- setReproduction(mf.params, repro_prop = matrix(0, nrow = nrow(mf.params@psi), ncol = ncol(mf.params@psi)))
+  
+  #mf.params@search_vol[] <- readRDS("data/SearchVol.rds")
+  #mf.params <- setSearchVolume(mf.params)
+  #mf.params <- setmort_test(mf.params, sst)
+  # M_sb <- getExtMort(mf.params)
+  # M_sb[] <- readRDS("data/mu_b.RDS")
+  # temp_eff <-  matrix(2.^((sst - 30)/10), nrow = length(mf.params@species_params$species), ncol = length(mf.params@w))
+  # M_sb <- temp_eff * M_sb *10 # Incorporate temp effect on senscence mortality
+  
+  # mf.params <- setExtMort(mf.params, z0 = M_sb)
+  
+  sim <- project(mf.params, dt = dt, t_max = tmax, t_save = 1) #TODO: make t_save an input to fZooMizer_run
+  
+  return(sim)
 }
