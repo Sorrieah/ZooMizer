@@ -2,7 +2,7 @@
 ##
 ## Adapted from Jason's ZooMSS code for UNSWs Katana
 ##
-## Updated by Irene Richards Wed 8-Sep-2021
+## Updated by Irene Richards Fri 10-Sep-2021
 
 library(mizer)
 library(tidyverse)
@@ -14,6 +14,7 @@ HPC <- FALSE # Select setup options for non-HPC runs
 if(HPC == FALSE){
   ID <- 703 # Select a specific enviro row for local runs
   enviro <- readRDS("data/enviro_grid20210705.RDS")[ID,]
+  enviro$tmax <- 100 # Set the model to run over 100 years instead of 1000
   # Generate unique job name
   jobname <- Sys.time() %>% format("%Y%m%d%H%M") %>% paste0("_grid",
                                                             "_sst-",enviro$sst,
@@ -126,5 +127,6 @@ ZooMizer_coupled <- function(ID, tmax = 1000, effort = 0) {
   return(project(fish_params, t_max = tmax, dt = 0.1, effort = effort))
 }  
 
-out <- ZooMizer_coupled(ID, tmax = 1000, effort = 0)
+#out <- ZooMizer_coupled(ID, tmax = 1000, effort = 0)
+out <- ZooMizer_coupled(ID, tmax = 100, effort = 0)
 saveRDS(out, file = paste0("Output/", jobname, "_ZooMizer_", ID_char,".RDS"))
