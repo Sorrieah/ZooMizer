@@ -11,6 +11,8 @@
 # w_pp_cutoff = 10^(input$phyto_max)* (1 + 1e-06), #maximum phyto size
 # cc_phyto <- 0.1 #carbon content of phytoplankton
 
+# Change default "phyto_fixed" to semichemostat
+# mf.params <- setResource(mf.params, resource_dynamics = "resource_semichemostat")
 
 
 # Experimental Functions --------------------------------------------------
@@ -23,7 +25,7 @@ phyto_decrement <- function(params, n, n_pp, n_other, rates, dt,
   npp[params@w_full > params@resource_params$w_pp_cutoff] <- 0
   return(npp)
 }
-resource_dynamics = "phyto_decrement"
+resource_dynamics = "resource_semichemostat"
 
 # ZooMizer Function -------------------------------------------------------
 
